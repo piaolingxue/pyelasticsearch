@@ -235,7 +235,7 @@ class ElasticSearch(object):
                 resp = req_method(
                     url,
                     timeout=self.timeout,
-                    **({'data': request_body} if body else {}))
+                    data=request_body)
             except (ConnectionError, Timeout):
                 self.servers.mark_dead(server_url)
                 self.logger.info('%s marked as dead for %s seconds.',
@@ -271,8 +271,8 @@ class ElasticSearch(object):
         """
         Convert a Python value to a form suitable for ElasticSearch's JSON DSL.
         """
-        return json.dumps(value, cls=self.json_encoder, use_decimal=True)
-
+        #return json.dumps(value, cls=self.json_encoder, use_decimal=True)
+        return json.dumps(value, ensure_ascii=False)
     def _decode_response(self, response):
         """Return a native-Python representation of a response's JSON blob."""
         try:
@@ -375,11 +375,12 @@ class ElasticSearch(object):
             if doc.get(parent_field) is not None:
                 action['index']['_parent'] = doc.pop(parent_field)
 
+
             body_bits.append(self._encode_json(action))
             body_bits.append(self._encode_json(doc))
 
         # Need the trailing newline.
-        body = '\n'.join(body_bits) + '\n'
+        body = ('\n'.join(body_bits) + '\n').encode('utf-8')
         return self.send_request('POST',
                                  ['_bulk'],
                                  body,
